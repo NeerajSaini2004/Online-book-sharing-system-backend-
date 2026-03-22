@@ -6,9 +6,10 @@ const notesSchema = new mongoose.Schema({
   class: { type: String, required: true },
   board: { type: String, required: true },
   description: String,
-  price: { type: Number, required: true },
+  isFree: { type: Boolean, default: false },
+  price: { type: Number, default: 0 },
   pages: { type: Number, required: true },
-  fileUrl: String,
+  fileUrl: { type: String, required: true },
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   downloads: { type: Number, default: 0 },
   rating: { type: Number, default: 0 }

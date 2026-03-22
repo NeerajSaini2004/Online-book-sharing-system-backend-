@@ -12,6 +12,9 @@ exports.createListing = async (req, res) => {
       }];
     }
     
+    // Auto approve - set status to active
+    listingData.status = 'active';
+    
     const listing = await Listing.create({
       ...listingData,
       seller: req.user._id
@@ -24,7 +27,17 @@ exports.createListing = async (req, res) => {
 
 exports.getListings = async (req, res) => {
   try {
-    const listings = await Listing.find({ status: 'active' })
+    const { search, category, condition } = req.query;
+    
+    const filter = { status: 'active' };
+    if (search) filter.$or = [
+      { title: { $regex: search, $options: 'i' } },
+      { author: { $regex: search, $options: 'i' } }
+    ];
+    if (category && category !== 'All Categories') filter.category = { $regex: category, $options: 'i' };
+    if (condition && condition !== 'All Conditions') filter.condition = { $regex: condition, $options: 'i' };
+    
+    const listings = await Listing.find(filter)
       .populate('seller', 'name email')
       .sort('-createdAt');
     res.json({ success: true, data: listings });
