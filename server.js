@@ -90,6 +90,7 @@ app.use('/api/blogs', require('./routes/blogRoutes'));
 app.use('/api/notes', require('./routes/notesRoutes'));
 app.use('/api/payment', require('./routes/paymentRoutes'));
 app.use('/api/wishlist', require('./routes/wishlistRoutes'));
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 // Serve uploaded files
 app.use('/uploads', express.static('uploads'));
