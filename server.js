@@ -124,10 +124,12 @@ const PORT = process.env.PORT || 5001;
 
 app.listen(PORT, () => {
   console.log(`
-🚀 BookShare Backend Running
+🚀 NEW DEPLOY WORKING - BookShare Backend Running
 📍 Port: ${PORT}
 🌍 Environment: ${process.env.NODE_ENV || 'development'}
 📊 Database: Connected
+⏰ Deploy Time: ${new Date().toLocaleString()}
+✅ Commit: 69e13cf - Enum restrictions removed
   `);
 });
 

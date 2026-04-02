@@ -1,66 +1,23 @@
 const mongoose = require('mongoose');
 
 const listingSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  author: {
-    type: String,
-    required: true
-  },
-  isbn: {
-    type: String,
-    sparse: true
-  },
+  title: { type: String, required: true, trim: true },
+  author: { type: String, required: true },
+  isbn: { type: String },
   edition: String,
-  price: {
-    type: Number,
-    required: true,
-    min: 1
-  },
+  price: { type: Number, required: true, min: 1 },
   originalPrice: Number,
-  condition: {
-    type: String,
-    required: true,
-    enum: ['new', 'like-new', 'good', 'fair']
-  },
-  description: {
-    type: String,
-    required: true
-  },
-  category: {
-    type: String,
-    required: true,
-    enum: ['upsc', 'gate', 'neet', 'jee', 'engineering', 'medical', 'law', 'mba', 'school', 'notes', 'mathematics', 'science', 'literature', 'history', 'commerce']
-  },
+  condition: { type: String, default: 'Good' },
+  description: { type: String, default: 'No description provided' },
+  category: { type: String, default: 'General' },
+  class: String,
+  board: String,
   subject: String,
   course: String,
   examType: String,
-  
-  // Listing type
-  listingType: {
-    type: String,
-    enum: ['physical', 'digital'],
-    default: 'physical'
-  },
-  
-  // For digital notes
-  digitalFile: {
-    url: String,
-    format: String,
-    size: Number
-  },
-  
-  // Sale type
-  saleType: {
-    type: String,
-    enum: ['fixed', 'negotiable', 'auction'],
-    default: 'fixed'
-  },
-  
-  // Auction specific
+  listingType: { type: String, default: 'physical' },
+  digitalFile: { url: String, format: String, size: Number },
+  saleType: { type: String, default: 'fixed' },
   auctionEndDate: Date,
   currentBid: Number,
   bidders: [{
@@ -68,64 +25,21 @@ const listingSchema = new mongoose.Schema({
     amount: Number,
     timestamp: { type: Date, default: Date.now }
   }],
-  
-  images: [{
-    url: String,
-    caption: String
-  }],
-  
-  // Stock management for libraries
-  stock: {
-    type: Number,
-    default: 1
-  },
-  
-  seller: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  
-  status: {
-    type: String,
-    enum: ['active', 'sold', 'inactive', 'pending'],
-    default: 'active'
-  },
-  
-  views: {
-    type: Number,
-    default: 0
-  },
-  
-  // Location for local exchange
+  images: [{ url: String, caption: String }],
+  stock: { type: Number, default: 1 },
+  seller: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  status: { type: String, default: 'active' },
+  views: { type: Number, default: 0 },
   location: {
     city: String,
     state: String,
-    coordinates: {
-      lat: Number,
-      lng: Number
-    }
+    coordinates: { lat: Number, lng: Number }
   },
-  
-  // Delivery options
-  deliveryOptions: [{
-    type: String,
-    enum: ['pickup', 'delivery', 'cod']
-  }],
-  
-  // Rating for this specific listing
+  deliveryOptions: [String],
   rating: {
     average: { type: Number, default: 0 },
     count: { type: Number, default: 0 }
   }
-}, {
-  timestamps: true
-});
-
-listingSchema.methods.updateRating = function(newRating) {
-  const totalRating = (this.rating.average * this.rating.count) + newRating;
-  this.rating.count += 1;
-  this.rating.average = totalRating / this.rating.count;
-};
+}, { timestamps: true });
 
 module.exports = mongoose.model('Listing', listingSchema);
