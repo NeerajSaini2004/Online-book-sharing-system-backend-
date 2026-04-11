@@ -42,12 +42,21 @@ exports.downloadNotes = async (req, res) => {
 
     await Notes.findByIdAndUpdate(req.params.id, { $inc: { downloads: 1 } });
 
-    // Cloudinary URL — add fl_attachment for proper filename download
     if (note.fileUrl.startsWith('http')) {
-      const filename = encodeURIComponent(`${note.title}.pdf`);
-      // Insert fl_attachment:filename into Cloudinary URL
-      const downloadUrl = note.fileUrl.replace('/upload/', `/upload/fl_attachment:${filename}/`);
-      return res.json({ success: true, downloadUrl });
+      // Proxy the file through backend to avoid CORS
+      const https = require('https');
+      const http = require('http');
+      const client = note.fileUrl.startsWith('https') ? https : http;
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${note.title}.pdf"`);
+
+      client.get(note.fileUrl, (fileRes) => {
+        fileRes.pipe(res);
+      }).on('error', () => {
+        res.status(500).json({ success: false, message: 'Download failed' });
+      });
+      return;
     }
 
     // Local file fallback
