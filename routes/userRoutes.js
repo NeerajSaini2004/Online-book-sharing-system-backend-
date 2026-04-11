@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const { protect } = require('../middleware/auth');
-const upload = require('../middleware/upload');
+const { upload } = require('../middleware/upload');
 const bcrypt = require('bcryptjs');
 
 router.get('/profile', protect, async (req, res) => {

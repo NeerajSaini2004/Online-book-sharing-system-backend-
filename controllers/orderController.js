@@ -88,34 +88,27 @@ exports.getOrder = async (req, res) => {
   }
 };
 
-// Get all orders for a user (buyer or seller)
+// Get buyer orders
 exports.getUserOrders = async (req, res) => {
   try {
-    const userId = req.user._id;
-    const { role } = req.query; // 'buyer' or 'seller'
-
-    let query = {};
-    if (role === 'seller') {
-      query.sellerId = userId;
-    } else {
-      query.buyerId = userId;
-    }
-
-    const orders = await Order.find(query)
+    const orders = await Order.find({ buyerId: req.user._id })
       .populate('bookId', 'title author images')
       .sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      data: orders
-    });
+    res.json({ success: true, data: orders });
   } catch (error) {
-    console.error('Get user orders error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch orders',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Get seller orders
+exports.getSellerOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({ sellerId: req.user._id })
+      .populate('bookId', 'title author images')
+      .sort({ createdAt: -1 });
+    res.json({ success: true, data: orders });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
