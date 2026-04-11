@@ -40,35 +40,23 @@ exports.downloadNotes = async (req, res) => {
     if (!note) return res.status(404).json({ success: false, message: 'Notes not found' });
     if (!note.isFree) return res.status(403).json({ success: false, message: 'Purchase required' });
 
-    // Try multiple possible paths
-    const possiblePaths = [
-      path.join(__dirname, '..', note.fileUrl),
-      path.join(__dirname, '..', 'uploads', 'notes', path.basename(note.fileUrl)),
-      path.join('/tmp', path.basename(note.fileUrl))
-    ];
-
-    let filePath = null;
-    for (const p of possiblePaths) {
-      if (fs.existsSync(p)) {
-        filePath = p;
-        break;
-      }
-    }
-
-    if (!filePath) {
-      // File not on disk - return the URL for direct access
-      const fileUrl = note.fileUrl.startsWith('http') 
-        ? note.fileUrl 
-        : `${req.protocol}://${req.get('host')}${note.fileUrl}`;
-      return res.json({ 
-        success: true, 
-        downloadUrl: fileUrl,
-        message: 'Use downloadUrl to access file'
-      });
-    }
-
     await Notes.findByIdAndUpdate(req.params.id, { $inc: { downloads: 1 } });
-    res.download(filePath, `${note.title}.pdf`);
+
+    // Cloudinary URL — add fl_attachment for proper filename download
+    if (note.fileUrl.startsWith('http')) {
+      const filename = encodeURIComponent(`${note.title}.pdf`);
+      // Insert fl_attachment:filename into Cloudinary URL
+      const downloadUrl = note.fileUrl.replace('/upload/', `/upload/fl_attachment:${filename}/`);
+      return res.json({ success: true, downloadUrl });
+    }
+
+    // Local file fallback
+    const filePath = path.join(__dirname, '..', note.fileUrl);
+    if (fs.existsSync(filePath)) {
+      return res.download(filePath, `${note.title}.pdf`);
+    }
+
+    res.status(404).json({ success: false, message: 'File not found' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
