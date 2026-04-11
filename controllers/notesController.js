@@ -1,13 +1,16 @@
 const Notes = require('../models/Notes');
+const { uploadToCloudinary } = require('../middleware/upload');
 const path = require('path');
 const fs = require('fs');
 
 exports.uploadNotes = async (req, res) => {
   try {
     const isFree = req.body.isFree === 'true' || req.body.isFree === true;
-    const fileUrl = req.file ? (req.file.path || `/uploads/notes/${req.file.filename}`) : null;
-    if (!fileUrl) return res.status(400).json({ success: false, message: 'PDF file is required' });
+    if (!req.file) return res.status(400).json({ success: false, message: 'PDF file is required' });
 
+    const fileUrl = process.env.CLOUDINARY_CLOUD_NAME
+      ? await uploadToCloudinary(req.file.buffer, 'bookshare/notes', 'raw')
+      : `/uploads/notes/${Date.now()}-${req.file.originalname}`;
     const notes = await Notes.create({
       ...req.body,
       isFree,

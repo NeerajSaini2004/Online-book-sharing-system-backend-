@@ -1,14 +1,15 @@
 const Listing = require('../models/Listing');
+const { uploadToCloudinary } = require('../middleware/upload');
 
 exports.createListing = async (req, res) => {
   try {
     console.log('API HIT 🚀', req.body);
-
     const listingData = { ...req.body };
 
     if (req.file) {
-      // Cloudinary returns secure_url, disk storage returns filename
-      const imageUrl = req.file.path || `/uploads/books/${req.file.filename}`;
+      const imageUrl = process.env.CLOUDINARY_CLOUD_NAME
+        ? await uploadToCloudinary(req.file.buffer, 'bookshare/books')
+        : `/uploads/books/${Date.now()}-${req.file.originalname}`;
       listingData.images = [{ url: imageUrl, caption: 'Book image' }];
     }
 
@@ -21,7 +22,7 @@ exports.createListing = async (req, res) => {
     res.status(201).json({ success: true, data: listing });
   } catch (error) {
     console.error('createListing error:', error.message);
-    res.status(400).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
