@@ -4,7 +4,7 @@ const notesSchema = new mongoose.Schema({
   title: { type: String, required: true },
   subject: { type: String, required: true },
   class: { type: String, required: true },
-  board: { type: String, required: true },
+  board: { type: String, default: 'General' },
   description: String,
   isFree: { type: Boolean, default: false },
   price: { type: Number, default: 0 },
