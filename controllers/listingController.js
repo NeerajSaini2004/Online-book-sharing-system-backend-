@@ -7,10 +7,9 @@ exports.createListing = async (req, res) => {
     const listingData = { ...req.body };
 
     if (req.file) {
-      listingData.images = [{
-        url: `/uploads/books/${req.file.filename}`,
-        caption: 'Book image'
-      }];
+      // Cloudinary returns secure_url, disk storage returns filename
+      const imageUrl = req.file.path || `/uploads/books/${req.file.filename}`;
+      listingData.images = [{ url: imageUrl, caption: 'Book image' }];
     }
 
     listingData.status = 'active';

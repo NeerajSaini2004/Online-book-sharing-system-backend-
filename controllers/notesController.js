@@ -5,7 +5,7 @@ const fs = require('fs');
 exports.uploadNotes = async (req, res) => {
   try {
     const isFree = req.body.isFree === 'true' || req.body.isFree === true;
-    const fileUrl = req.file ? `/uploads/notes/${req.file.filename}` : null;
+    const fileUrl = req.file ? (req.file.path || `/uploads/notes/${req.file.filename}`) : null;
     if (!fileUrl) return res.status(400).json({ success: false, message: 'PDF file is required' });
 
     const notes = await Notes.create({

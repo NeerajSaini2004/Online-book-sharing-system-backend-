@@ -1,60 +1,53 @@
 const multer = require('multer');
 const path = require('path');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const cloudinary = require('cloudinary').v2;
 
-// Storage configuration
-const storage = multer.diskStorage({
+// Configure Cloudinary if credentials exist
+if (process.env.CLOUDINARY_CLOUD_NAME) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+  });
+}
+
+// Cloudinary storage
+const cloudinaryStorage = process.env.CLOUDINARY_CLOUD_NAME ? new CloudinaryStorage({
+  cloudinary,
+  params: (req, file) => ({
+    folder: file.fieldname === 'bookImage' ? 'bookshare/books' : file.fieldname === 'notesFile' ? 'bookshare/notes' : 'bookshare/kyc',
+    allowed_formats: file.fieldname === 'bookImage' ? ['jpg', 'jpeg', 'png', 'webp'] : ['pdf', 'jpg', 'jpeg', 'png'],
+    resource_type: file.fieldname === 'notesFile' ? 'raw' : 'image'
+  })
+}) : null;
+
+// Local disk storage fallback
+const diskStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    if (file.fieldname === 'bookImage') {
-      cb(null, 'uploads/books/');
-    } else if (file.fieldname === 'noteFile' || file.fieldname === 'notesFile') {
-      cb(null, 'uploads/notes/');
-    } else if (file.fieldname === 'documents') {
-      cb(null, 'uploads/kyc/');
-    } else {
-      cb(null, 'uploads/');
-    }
+    if (file.fieldname === 'bookImage') cb(null, 'uploads/books/');
+    else if (file.fieldname === 'notesFile' || file.fieldname === 'notesFile') cb(null, 'uploads/notes/');
+    else if (file.fieldname === 'documents') cb(null, 'uploads/kyc/');
+    else cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    cb(null, file.fieldname + '-' + Date.now() + '-' + Math.round(Math.random() * 1E9) + path.extname(file.originalname));
   }
 });
 
-// File filter
 const fileFilter = (req, file, cb) => {
-  const allowedFields = ['bookImage', 'noteFile', 'notesFile', 'file', 'documents'];
-  
-  if (!allowedFields.includes(file.fieldname)) {
-    return cb(new Error(`Unexpected field: ${file.fieldname}`), false);
-  }
-  
   if (file.fieldname === 'bookImage') {
-    // Allow only images
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed for book images'), false);
-    }
-  } else if (file.fieldname === 'noteFile' || file.fieldname === 'notesFile' || file.fieldname === 'file' || file.fieldname === 'documents') {
-    // Allow PDF and document files
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png'];
-    if (allowedTypes.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only PDF, Word documents, and images are allowed'), false);
-    }
+    file.mimetype.startsWith('image/') ? cb(null, true) : cb(new Error('Only images allowed'), false);
   } else {
-    cb(null, true);
+    const allowed = ['application/pdf', 'application/msword', 'image/jpeg', 'image/png'];
+    allowed.includes(file.mimetype) ? cb(null, true) : cb(new Error('Invalid file type'), false);
   }
 };
 
-// Multer configuration
 const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
-  },
-  fileFilter: fileFilter
+  storage: cloudinaryStorage || diskStorage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter
 });
 
 module.exports = upload;
