@@ -1,5 +1,4 @@
 const Listing = require('../models/Listing');
-const mongoose = require('mongoose');
 
 exports.createListing = async (req, res) => {
   try {
@@ -19,15 +18,7 @@ exports.createListing = async (req, res) => {
     listingData.category = String(listingData.category || 'General');
     listingData.description = listingData.description || 'No description provided';
 
-    let sellerId = req.user._id;
-    if (!mongoose.Types.ObjectId.isValid(sellerId)) {
-      const User = require('../models/User');
-      const fallback = await User.findOne();
-      if (!fallback) return res.status(400).json({ success: false, message: 'No valid user found' });
-      sellerId = fallback._id;
-    }
-
-    const listing = await Listing.create({ ...listingData, seller: sellerId });
+    const listing = await Listing.create({ ...listingData, seller: req.user._id });
     res.status(201).json({ success: true, data: listing });
   } catch (error) {
     console.error('createListing error:', error.message);

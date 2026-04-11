@@ -8,22 +8,12 @@ exports.uploadNotes = async (req, res) => {
     const fileUrl = req.file ? `/uploads/notes/${req.file.filename}` : null;
     if (!fileUrl) return res.status(400).json({ success: false, message: 'PDF file is required' });
 
-    // For mock/test users, find or use a real user id
-    let authorId = req.user._id;
-    const mongoose = require('mongoose');
-    if (!mongoose.Types.ObjectId.isValid(authorId)) {
-      const User = require('../models/User');
-      const fallback = await User.findOne();
-      if (!fallback) return res.status(400).json({ success: false, message: 'No valid user found' });
-      authorId = fallback._id;
-    }
-
     const notes = await Notes.create({
       ...req.body,
       isFree,
       price: isFree ? 0 : Number(req.body.price),
       fileUrl,
-      author: authorId
+      author: req.user._id
     });
     await notes.populate('author', 'name');
     res.status(201).json({ success: true, data: notes });

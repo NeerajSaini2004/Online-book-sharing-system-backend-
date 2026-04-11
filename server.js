@@ -98,18 +98,19 @@ app.use('/uploads', express.static('uploads'));
 if (process.env.NODE_ENV === 'production') {
   const buildPath = path.join(__dirname, '..', 'client', 'build');
   app.use(express.static(buildPath));
-  app.get('*', (req, res) => {
+  app.get('*', (req, res, next) => {
+    // Don't intercept API routes
+    if (req.originalUrl.startsWith('/api') || req.originalUrl.startsWith('/uploads')) {
+      return next();
+    }
     res.sendFile(path.join(buildPath, 'index.html'));
   });
-} else {
-  // 404 handler for development
-  app.use('*', (req, res) => {
-    res.status(404).json({
-      success: false,
-      message: 'Route not found'
-    });
-  });
 }
+
+// 404 handler - always last
+app.use('*', (req, res) => {
+  res.status(404).json({ success: false, message: 'Route not found' });
+});
 
 // Error handler
 app.use((err, req, res, next) => {
