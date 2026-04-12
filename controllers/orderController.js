@@ -121,9 +121,16 @@ exports.getUserOrders = async (req, res) => {
 // Get seller orders
 exports.getSellerOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ sellerId: req.user._id })
-      .sort({ createdAt: -1 });
-    res.json({ success: true, data: orders });
+    // Try both string and ObjectId match
+    const mongoose = require('mongoose');
+    const sellerId = req.user._id;
+    const orders = await Order.find({
+      $or: [
+        { sellerId: sellerId },
+        { sellerId: sellerId.toString() }
+      ]
+    }).sort({ createdAt: -1 });
+    res.json({ success: true, data: orders, debug: { sellerId: sellerId.toString(), count: orders.length } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
