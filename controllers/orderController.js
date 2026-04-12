@@ -44,6 +44,24 @@ exports.createOrder = async (req, res) => {
 
     await order.save();
 
+    // Send inbox notification to seller
+    const User = require('../models/User');
+    if (sellerId) {
+      await User.findByIdAndUpdate(sellerId, {
+        $push: {
+          inbox: {
+            from: req.user._id,
+            fromName: buyerName || 'A Buyer',
+            bookId,
+            bookTitle,
+            message: `📦 New Order! "${bookTitle}" - ₹${amount} (${paymentMethod?.toUpperCase()}). Delivery to: ${deliveryAddress}`,
+            read: false,
+            createdAt: new Date()
+          }
+        }
+      });
+    }
+
     res.status(201).json({
       success: true,
       message: 'Order created successfully',
