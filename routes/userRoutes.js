@@ -153,4 +153,17 @@ router.put('/inbox/:msgId/read', protect, async (req, res) => {
   }
 });
 
+// Delete inbox message
+router.delete('/inbox/:msgId', protect, async (req, res) => {
+  try {
+    await User.updateOne(
+      { _id: req.user._id },
+      { $pull: { inbox: { _id: req.params.msgId } } }
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;
