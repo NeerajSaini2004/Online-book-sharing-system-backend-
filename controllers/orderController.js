@@ -104,7 +104,6 @@ exports.getUserOrders = async (req, res) => {
 exports.getSellerOrders = async (req, res) => {
   try {
     const orders = await Order.find({ sellerId: req.user._id })
-      .populate('bookId', 'title author images')
       .sort({ createdAt: -1 });
     res.json({ success: true, data: orders });
   } catch (error) {
