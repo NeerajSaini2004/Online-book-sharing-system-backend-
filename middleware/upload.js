@@ -15,7 +15,7 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    if (file.fieldname === 'bookImage') {
+    if (file.fieldname === 'bookImage' || file.fieldname === 'extraImages') {
       file.mimetype.startsWith('image/') ? cb(null, true) : cb(new Error('Only images allowed'), false);
     } else {
       const allowed = ['application/pdf', 'image/jpeg', 'image/png'];

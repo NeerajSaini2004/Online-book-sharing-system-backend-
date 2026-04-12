@@ -11,11 +11,11 @@ const {
   deleteListing
 } = require('../controllers/listingController');
 
-router.post('/', protect, upload.single('bookImage'), createListing);
+router.post('/', protect, upload.fields([{ name: 'bookImage', maxCount: 1 }, { name: 'extraImages', maxCount: 4 }]), createListing);
 router.get('/', getListings);
 router.get('/my', protect, getMyListings);
 router.get('/:id', getListing);
-router.put('/:id', protect, upload.single('bookImage'), updateListing);
+router.put('/:id', protect, upload.fields([{ name: 'bookImage', maxCount: 1 }, { name: 'extraImages', maxCount: 4 }]), updateListing);
 router.delete('/:id', protect, deleteListing);
 
 module.exports = router;

@@ -6,11 +6,23 @@ exports.createListing = async (req, res) => {
     console.log('API HIT 🚀', req.body);
     const listingData = { ...req.body };
 
-    if (req.file) {
-      const imageUrl = process.env.CLOUDINARY_CLOUD_NAME
-        ? await uploadToCloudinary(req.file.buffer, 'bookshare/books')
-        : `/uploads/books/${Date.now()}-${req.file.originalname}`;
-      listingData.images = [{ url: imageUrl, caption: 'Book image' }];
+    if (req.files) {
+      const images = [];
+      if (req.files.bookImage?.[0]) {
+        const url = process.env.CLOUDINARY_CLOUD_NAME
+          ? await uploadToCloudinary(req.files.bookImage[0].buffer, 'bookshare/books')
+          : `/uploads/books/${Date.now()}-${req.files.bookImage[0].originalname}`;
+        images.push({ url, caption: 'Book image' });
+      }
+      if (req.files.extraImages) {
+        for (const file of req.files.extraImages) {
+          const url = process.env.CLOUDINARY_CLOUD_NAME
+            ? await uploadToCloudinary(file.buffer, 'bookshare/books')
+            : `/uploads/books/${Date.now()}-${file.originalname}`;
+          images.push({ url, caption: 'Book image' });
+        }
+      }
+      if (images.length > 0) listingData.images = images;
     }
 
     listingData.status = 'active';
