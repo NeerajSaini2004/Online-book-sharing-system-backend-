@@ -78,7 +78,18 @@ const userSchema = new mongoose.Schema({
   // Social login
   googleId: String,
   facebookId: String,
-  linkedinId: String
+  linkedinId: String,
+
+  // Inbox messages
+  inbox: [{
+    from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    fromName: String,
+    bookId: String,
+    bookTitle: String,
+    message: String,
+    read: { type: Boolean, default: false },
+    createdAt: { type: Date, default: Date.now }
+  }]
 }, {
   timestamps: true
 });

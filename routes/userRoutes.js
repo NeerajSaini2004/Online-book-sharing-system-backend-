@@ -98,4 +98,59 @@ router.put('/password', protect, async (req, res) => {
   }
 });
 
+// Send message to seller (no contact info exposed)
+router.post('/message', protect, async (req, res) => {
+  try {
+    const { sellerId, bookId, bookTitle, message } = req.body;
+    if (!sellerId || !message?.trim()) {
+      return res.status(400).json({ success: false, message: 'sellerId and message required' });
+    }
+    const seller = await User.findById(sellerId);
+    if (!seller) return res.status(404).json({ success: false, message: 'Seller not found' });
+
+    // Store message in seller's inbox (in User model as array)
+    await User.findByIdAndUpdate(sellerId, {
+      $push: {
+        inbox: {
+          from: req.user._id,
+          fromName: req.user.name,
+          bookId,
+          bookTitle,
+          message: message.trim(),
+          read: false,
+          createdAt: new Date()
+        }
+      }
+    });
+
+    res.json({ success: true, message: 'Message sent to seller' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Get my inbox messages
+router.get('/inbox', protect, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('inbox').populate('inbox.from', 'name');
+    const inbox = (user.inbox || []).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    res.json({ success: true, data: inbox });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Mark message as read
+router.put('/inbox/:msgId/read', protect, async (req, res) => {
+  try {
+    await User.updateOne(
+      { _id: req.user._id, 'inbox._id': req.params.msgId },
+      { $set: { 'inbox.$.read': true } }
+    );
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 module.exports = router;
