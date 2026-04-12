@@ -157,48 +157,26 @@ exports.markAsShipped = async (req, res) => {
   }
 };
 
-// Update delivery status (for admin/delivery partner)
 exports.updateDeliveryStatus = async (req, res) => {
   try {
-    const { deliveryStatus } = req.body;
+    const { deliveryStatus, trackingId } = req.body;
     const order = await Order.findById(req.params.id);
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found'
-      });
-    }
+    if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
     const validStatuses = ['Pending', 'Shipped', 'Out for Delivery', 'Delivered'];
     if (!validStatuses.includes(deliveryStatus)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid delivery status'
-      });
+      return res.status(400).json({ success: false, message: 'Invalid delivery status' });
     }
 
     order.deliveryStatus = deliveryStatus;
-    
-    // Set actual delivery date when delivered
+    if (trackingId) order.trackingId = trackingId;
     if (deliveryStatus === 'Delivered' && !order.actualDeliveryDate) {
       order.actualDeliveryDate = new Date();
     }
-
     await order.save();
-
-    res.json({
-      success: true,
-      message: 'Delivery status updated',
-      data: order
-    });
+    res.json({ success: true, message: 'Order updated', data: order });
   } catch (error) {
-    console.error('Update delivery status error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update status',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
