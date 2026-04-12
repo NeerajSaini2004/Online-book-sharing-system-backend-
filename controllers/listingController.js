@@ -60,7 +60,7 @@ exports.getListings = async (req, res) => {
 
 exports.getListing = async (req, res) => {
   try {
-    const listing = await Listing.findById(req.params.id).populate('seller', 'name');
+    const listing = await Listing.findById(req.params.id).populate('seller', 'name _id');
     if (!listing) return res.status(404).json({ success: false, message: 'Listing not found' });
     res.json({ success: true, data: listing });
   } catch (error) {
