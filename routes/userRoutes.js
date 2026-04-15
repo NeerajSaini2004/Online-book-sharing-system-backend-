@@ -18,17 +18,21 @@ router.get('/profile', protect, async (req, res) => {
 
 router.put('/profile', protect, async (req, res) => {
   try {
-    const updates = req.body;
+    const { name, phone, college, libraryName, location } = req.body;
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (phone) updateData.phone = phone;
+    if (college !== undefined) updateData.college = college;
+    if (libraryName !== undefined) updateData.libraryName = libraryName;
+    if (location) updateData.location = location;
+
     const user = await User.findByIdAndUpdate(
       req.user._id,
-      updates,
-      { new: true, runValidators: true }
+      { $set: updateData },
+      { new: true, runValidators: false }
     ).select('-password');
     
-    res.json({
-      success: true,
-      data: { user }
-    });
+    res.json({ success: true, data: { user } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

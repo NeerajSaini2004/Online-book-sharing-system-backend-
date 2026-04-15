@@ -31,10 +31,10 @@ const userSchema = new mongoose.Schema({
     url: String
   },
   // Student specific fields
-  // college: {
-  //   type: String,
-  //   required: function () { return this.role === 'student'; }
-  // },
+  college: {
+    type: String,
+    default: ''
+  },
   academicInterests: [String],
 
   // Library specific fields
