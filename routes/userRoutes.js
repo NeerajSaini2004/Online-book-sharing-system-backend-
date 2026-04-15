@@ -25,6 +25,7 @@ router.put('/profile', protect, async (req, res) => {
     if (college !== undefined) updateData.college = college;
     if (libraryName !== undefined) updateData.libraryName = libraryName;
     if (location) updateData.location = location;
+    // Never update role, email, password from this route
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
