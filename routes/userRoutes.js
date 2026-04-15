@@ -36,9 +36,19 @@ router.put('/profile', protect, async (req, res) => {
 
 router.post('/kyc/upload', protect, upload.array('documents', 5), async (req, res) => {
   try {
-    const documents = req.files.map(file => ({
-      type: req.body.documentType || 'identity',
-      url: file.path
+    const { uploadToCloudinary } = require('../middleware/upload');
+    
+    const documents = await Promise.all(req.files.map(async (file) => {
+      let url;
+      if (process.env.CLOUDINARY_CLOUD_NAME) {
+        url = await uploadToCloudinary(file.buffer, 'bookshare/kyc', 'raw');
+      } else {
+        url = `/uploads/kyc/${Date.now()}-${file.originalname}`;
+      }
+      return {
+        type: req.body.documentType || 'identity',
+        url
+      };
     }));
 
     const user = await User.findByIdAndUpdate(
