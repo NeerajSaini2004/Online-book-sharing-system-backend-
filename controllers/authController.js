@@ -196,25 +196,70 @@ const resetPassword = async (req, res) => {
   }
 };
 
-// Direct Password Reset (no email needed)
+// Send OTP for password reset
+const sendOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ success: false, message: 'No account found with this email' });
+
+    // Generate 6 digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.resetPasswordToken = crypto.createHash('sha256').update(otp).digest('hex');
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save({ validateBeforeSave: false });
+
+    await sendEmail(
+      user.email,
+      'BookShare - Password Reset OTP',
+      `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #0284c7;">Password Reset OTP</h2>
+          <p>Hi ${user.name},</p>
+          <p>Your OTP to reset password is:</p>
+          <div style="background: #f0f9ff; border: 2px solid #0284c7; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;">
+            <h1 style="color: #0284c7; font-size: 40px; letter-spacing: 8px; margin: 0;">${otp}</h1>
+          </div>
+          <p>This OTP expires in <strong>10 minutes</strong>.</p>
+          <p style="color: #ef4444;">If you didn't request this, please ignore this email. Your account is safe.</p>
+          <hr/>
+          <p style="color: #666; font-size: 12px;">BookShare Team</p>
+        </div>
+      `
+    );
+
+    res.json({ success: true, message: 'OTP sent to your email!' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to send OTP' });
+  }
+};
+
+// Verify OTP and reset password
 const resetPasswordDirect = async (req, res) => {
   try {
-    const { email, newPassword } = req.body;
+    const { email, otp, newPassword } = req.body;
 
-    if (!email || !newPassword) {
-      return res.status(400).json({ success: false, message: 'Email and new password required' });
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Email, OTP and new password required' });
     }
-
     if (newPassword.length < 8) {
       return res.status(400).json({ success: false, message: 'Password must be at least 8 characters' });
     }
 
-    const user = await User.findOne({ email });
+    const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
+    const user = await User.findOne({
+      email,
+      resetPasswordToken: hashedOtp,
+      resetPasswordExpire: { $gt: Date.now() }
+    });
+
     if (!user) {
-      return res.status(404).json({ success: false, message: 'No account found with this email' });
+      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
     }
 
     user.password = newPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
     await user.save();
 
     res.json({ success: true, message: 'Password reset successful!' });
@@ -223,4 +268,4 @@ const resetPasswordDirect = async (req, res) => {
   }
 };
 
-module.exports = { register, login, googleLogin, forgotPassword, resetPassword, resetPasswordDirect };
+module.exports = { register, login, googleLogin, forgotPassword, resetPassword, sendOTP, resetPasswordDirect };
