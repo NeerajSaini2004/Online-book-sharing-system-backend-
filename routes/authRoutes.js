@@ -1,5 +1,5 @@
 const express = require('express');
-const { register, login, googleLogin, forgotPassword, resetPassword } = require('../controllers/authController');
+const { register, login, googleLogin, forgotPassword, resetPassword, resetPasswordDirect } = require('../controllers/authController');
 
 const router = express.Router();
 
@@ -8,5 +8,6 @@ router.post('/login', login);
 router.post('/google', googleLogin);
 router.post('/forgot-password', forgotPassword);
 router.put('/reset-password/:token', resetPassword);
+router.post('/reset-password-direct', resetPasswordDirect);
 
 module.exports = router;

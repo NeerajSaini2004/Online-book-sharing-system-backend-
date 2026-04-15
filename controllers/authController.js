@@ -196,4 +196,31 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { register, login, googleLogin, forgotPassword, resetPassword };
+// Direct Password Reset (no email needed)
+const resetPasswordDirect = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Email and new password required' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'No account found with this email' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ success: true, message: 'Password reset successful!' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = { register, login, googleLogin, forgotPassword, resetPassword, resetPasswordDirect };
