@@ -196,6 +196,82 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// Send OTP for email verification (signup)
+const sendVerificationOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ success: false, message: 'Email already registered' });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Store OTP in memory with expiry (use temp storage)
+    const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
+    const expire = Date.now() + 10 * 60 * 1000;
+
+    // Store in a temp user or use JWT to pass OTP
+    const tempToken = jwt.sign({ email, hashedOtp, expire }, process.env.JWT_SECRET, { expiresIn: '10m' });
+
+    await sendEmail(
+      email,
+      'BookShare - Email Verification OTP',
+      `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #0284c7;">Verify Your Email</h2>
+          <p>Your OTP to verify your email is:</p>
+          <div style="background: #f0f9ff; border: 2px solid #0284c7; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;">
+            <h1 style="color: #0284c7; font-size: 40px; letter-spacing: 8px; margin: 0;">${otp}</h1>
+          </div>
+          <p>This OTP expires in <strong>10 minutes</strong>.</p>
+          <p style="color: #ef4444;">If you didn't request this, please ignore this email.</p>
+          <hr/>
+          <p style="color: #666; font-size: 12px;">BookShare Team</p>
+        </div>
+      `
+    );
+
+    res.json({ success: true, message: 'OTP sent!', tempToken });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to send OTP' });
+  }
+};
+
+// Verify OTP and register
+const verifyAndRegister = async (req, res) => {
+  try {
+    const { tempToken, otp, name, phone, password, role } = req.body;
+
+    // Verify temp token
+    let decoded;
+    try {
+      decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+    } catch {
+      return res.status(400).json({ success: false, message: 'OTP expired. Please request again.' });
+    }
+
+    const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
+    if (hashedOtp !== decoded.hashedOtp) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+
+    const existing = await User.findOne({ email: decoded.email });
+    if (existing) return res.status(400).json({ success: false, message: 'Email already registered' });
+
+    const user = await User.create({
+      name, email: decoded.email, phone, password,
+      role: role || 'student'
+    });
+    const token = generateToken(user._id);
+
+    res.status(201).json({
+      success: true,
+      message: 'Account created successfully!',
+      data: { user: { id: user._id, name: user.name, email: user.email, role: user.role }, token }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // Send OTP for password reset
 const sendOTP = async (req, res) => {
   try {
@@ -268,4 +344,4 @@ const resetPasswordDirect = async (req, res) => {
   }
 };
 
-module.exports = { register, login, googleLogin, forgotPassword, resetPassword, sendOTP, resetPasswordDirect };
+module.exports = { register, login, googleLogin, forgotPassword, resetPassword, sendOTP, resetPasswordDirect, sendVerificationOTP, verifyAndRegister };
