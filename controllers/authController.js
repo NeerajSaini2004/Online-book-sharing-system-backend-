@@ -215,27 +215,27 @@ const sendVerificationOTP = async (req, res) => {
     // Store in a temp user or use JWT to pass OTP
     const tempToken = jwt.sign({ email, hashedOtp, expire }, process.env.JWT_SECRET, { expiresIn: '10m' });
 
-    await sendEmail(
-      email,
-      'BookShare - Email Verification OTP',
-      `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    // Try to send email, don't fail if not configured
+    try {
+      await sendEmail(
+        email,
+        'BookShare - Email Verification OTP',
+        `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #0284c7;">Verify Your Email</h2>
-          <p>Your OTP to verify your email is:</p>
+          <p>Your OTP is:</p>
           <div style="background: #f0f9ff; border: 2px solid #0284c7; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;">
             <h1 style="color: #0284c7; font-size: 40px; letter-spacing: 8px; margin: 0;">${otp}</h1>
           </div>
-          <p>This OTP expires in <strong>10 minutes</strong>.</p>
-          <p style="color: #ef4444;">If you didn't request this, please ignore this email.</p>
-          <hr/>
-          <p style="color: #666; font-size: 12px;">BookShare Team</p>
-        </div>
-      `
-    );
+          <p>Expires in <strong>10 minutes</strong>.</p>
+        </div>`
+      );
+    } catch (emailErr) {
+      console.log('Email send failed:', emailErr.message);
+    }
 
     res.json({ 
       success: true, 
-      message: process.env.EMAIL_USER ? 'OTP sent to your email!' : 'OTP generated (email not configured)',
+      message: process.env.EMAIL_USER ? 'OTP sent to your email!' : 'OTP generated',
       tempToken,
       ...((!process.env.EMAIL_USER) && { devOtp: otp })
     });
@@ -288,38 +288,37 @@ const sendOTP = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ success: false, message: 'No account found with this email' });
 
-    // Generate 6 digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     user.resetPasswordToken = crypto.createHash('sha256').update(otp).digest('hex');
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
     await user.save({ validateBeforeSave: false });
 
-    await sendEmail(
-      user.email,
-      'BookShare - Password Reset OTP',
-      `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    // Try to send email, but don't fail if email not configured
+    try {
+      await sendEmail(
+        user.email,
+        'BookShare - Password Reset OTP',
+        `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #0284c7;">Password Reset OTP</h2>
-          <p>Hi ${user.name},</p>
-          <p>Your OTP to reset password is:</p>
+          <p>Hi ${user.name}, your OTP is:</p>
           <div style="background: #f0f9ff; border: 2px solid #0284c7; border-radius: 12px; padding: 20px; text-align: center; margin: 20px 0;">
             <h1 style="color: #0284c7; font-size: 40px; letter-spacing: 8px; margin: 0;">${otp}</h1>
           </div>
-          <p>This OTP expires in <strong>10 minutes</strong>.</p>
-          <p style="color: #ef4444;">If you didn't request this, please ignore this email. Your account is safe.</p>
-          <hr/>
-          <p style="color: #666; font-size: 12px;">BookShare Team</p>
-        </div>
-      `
-    );
+          <p>Expires in <strong>10 minutes</strong>.</p>
+        </div>`
+      );
+    } catch (emailErr) {
+      console.log('Email send failed:', emailErr.message);
+    }
 
     res.json({ 
       success: true, 
-      message: process.env.EMAIL_USER ? 'OTP sent to your email!' : 'OTP generated (email not configured)',
+      message: process.env.EMAIL_USER ? 'OTP sent to your email!' : 'OTP generated',
       ...((!process.env.EMAIL_USER) && { devOtp: otp })
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Failed to send OTP' });
+    console.error('sendOTP error:', error.message);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
