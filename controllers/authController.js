@@ -11,6 +11,10 @@ const generateToken = (id) => {
 };
 
 const sendEmail = async (to, subject, html) => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.log('EMAIL NOT CONFIGURED - OTP would be sent to:', to);
+    return; // Skip silently
+  }
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -229,7 +233,12 @@ const sendVerificationOTP = async (req, res) => {
       `
     );
 
-    res.json({ success: true, message: 'OTP sent!', tempToken });
+    res.json({ 
+      success: true, 
+      message: process.env.EMAIL_USER ? 'OTP sent to your email!' : 'OTP generated (email not configured)',
+      tempToken,
+      ...((!process.env.EMAIL_USER) && { devOtp: otp })
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to send OTP' });
   }
@@ -304,7 +313,11 @@ const sendOTP = async (req, res) => {
       `
     );
 
-    res.json({ success: true, message: 'OTP sent to your email!' });
+    res.json({ 
+      success: true, 
+      message: process.env.EMAIL_USER ? 'OTP sent to your email!' : 'OTP generated (email not configured)',
+      ...((!process.env.EMAIL_USER) && { devOtp: otp })
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to send OTP' });
   }
