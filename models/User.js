@@ -60,8 +60,8 @@ const userSchema = new mongoose.Schema({
     default: 'pending'
   },
   kycDocuments: [{
-    type: String,
-    url: String
+    type: { type: String },
+    url: { type: String }
   }],
 
   // Ratings

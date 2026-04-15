@@ -47,25 +47,25 @@ router.post('/kyc/upload', protect, upload.array('documents', 5), async (req, re
       }
       return {
         type: req.body.documentType || 'identity',
-        url
+        url: url
       };
     }));
 
-    const user = await User.findByIdAndUpdate(
+    await User.findByIdAndUpdate(
       req.user._id,
       { 
         $push: { kycDocuments: { $each: documents } },
         kycStatus: 'pending'
       },
       { new: true }
-    ).select('-password');
+    );
 
     res.json({
       success: true,
-      message: 'KYC documents uploaded successfully',
-      data: { user }
+      message: 'KYC documents uploaded successfully'
     });
   } catch (error) {
+    console.error('KYC upload error:', error.message);
     res.status(500).json({ success: false, message: error.message });
   }
 });
