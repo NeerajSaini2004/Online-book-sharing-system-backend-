@@ -80,6 +80,10 @@ const userSchema = new mongoose.Schema({
   facebookId: String,
   linkedinId: String,
 
+  // Password reset
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
+
   // Inbox messages
   inbox: [{
     from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
