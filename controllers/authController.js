@@ -12,17 +12,27 @@ const generateToken = (id) => {
 
 const sendEmail = async (to, subject, html) => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log('EMAIL NOT CONFIGURED - OTP would be sent to:', to);
-    return; // Skip silently
+    console.log('EMAIL NOT CONFIGURED - skipping email to:', to);
+    return;
   }
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
+    port: parseInt(process.env.EMAIL_PORT || '587'),
+    secure: false,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS
-    }
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000
   });
-  await transporter.sendMail({ from: process.env.EMAIL_USER, to, subject, html });
+  await transporter.sendMail({
+    from: `"BookShare" <${process.env.EMAIL_USER}>`,
+    to,
+    subject,
+    html
+  });
 };
 
 // Register user
