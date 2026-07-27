@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const { OAuth2Client } = require('google-auth-library');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -11,24 +11,13 @@ const generateToken = (id) => {
 };
 
 const sendEmail = async (to, subject, html) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log('EMAIL NOT CONFIGURED - skipping email to:', to);
+  if (!process.env.RESEND_API_KEY) {
+    console.log('RESEND NOT CONFIGURED - skipping email to:', to);
     return;
   }
-  const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
-    port: parseInt(process.env.EMAIL_PORT || '587'),
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000
-  });
-  await transporter.sendMail({
-    from: `"BookShare" <${process.env.EMAIL_USER}>`,
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  await resend.emails.send({
+    from: 'BookShare <onboarding@resend.dev>',
     to,
     subject,
     html
@@ -245,9 +234,9 @@ const sendVerificationOTP = async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: process.env.EMAIL_USER ? 'OTP sent to your email!' : 'OTP generated',
+      message: process.env.RESEND_API_KEY ? 'OTP sent to your email!' : 'OTP generated',
       tempToken,
-      ...((!process.env.EMAIL_USER) && { devOtp: otp })
+      ...((!process.env.RESEND_API_KEY) && { devOtp: otp })
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to send OTP' });
@@ -323,8 +312,8 @@ const sendOTP = async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: process.env.EMAIL_USER ? 'OTP sent to your email!' : 'OTP generated',
-      ...((!process.env.EMAIL_USER) && { devOtp: otp })
+      message: process.env.RESEND_API_KEY ? 'OTP sent to your email!' : 'OTP generated',
+      ...((!process.env.RESEND_API_KEY) && { devOtp: otp })
     });
   } catch (error) {
     console.error('sendOTP error:', error.message);
