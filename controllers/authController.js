@@ -17,7 +17,7 @@ const sendEmail = async (to, subject, html) => {
   }
 
   const data = JSON.stringify({
-    sender: { name: 'BookShare', email: 'noreply@bookshare.in' },
+    sender: { name: 'BookShare', email: process.env.BREVO_SENDER_EMAIL || 'en.neerajyt@gmail.com' },
     to: [{ email: to }],
     subject,
     htmlContent: html
