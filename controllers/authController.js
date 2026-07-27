@@ -1,8 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const nodemailer = require('nodemailer');
-const { Resend } = require('resend');
+const https = require('https');
 const { OAuth2Client } = require('google-auth-library');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -12,24 +11,46 @@ const generateToken = (id) => {
 };
 
 const sendEmail = async (to, subject, html) => {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.log('EMAIL NOT CONFIGURED - skipping email to:', to);
+  if (!process.env.BREVO_API_KEY) {
+    console.log('BREVO NOT CONFIGURED - skipping email to:', to);
     return;
   }
-  const transporter = nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
-  await transporter.sendMail({
-    from: `"BookShare" <${process.env.EMAIL_USER}>`,
-    to,
+
+  const data = JSON.stringify({
+    sender: { name: 'BookShare', email: 'noreply@bookshare.in' },
+    to: [{ email: to }],
     subject,
-    html
+    htmlContent: html
+  });
+
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'api.brevo.com',
+      path: '/v3/smtp/email',
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': process.env.BREVO_API_KEY,
+        'content-type': 'application/json',
+        'content-length': Buffer.byteLength(data)
+      }
+    };
+
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve(body);
+        } else {
+          reject(new Error(`Brevo API error: ${res.statusCode} - ${body}`));
+        }
+      });
+    });
+
+    req.on('error', reject);
+    req.write(data);
+    req.end();
   });
 };
 
@@ -243,9 +264,9 @@ const sendVerificationOTP = async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: process.env.EMAIL_USER ? 'OTP sent to your email!' : 'OTP generated',
+      message: process.env.BREVO_API_KEY ? 'OTP sent to your email!' : 'OTP generated',
       tempToken,
-      ...((!process.env.EMAIL_USER) && { devOtp: otp })
+      ...((!process.env.BREVO_API_KEY) && { devOtp: otp })
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to send OTP' });
@@ -321,8 +342,8 @@ const sendOTP = async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: process.env.EMAIL_USER ? 'OTP sent to your email!' : 'OTP generated',
-      ...((!process.env.EMAIL_USER) && { devOtp: otp })
+      message: process.env.BREVO_API_KEY ? 'OTP sent to your email!' : 'OTP generated',
+      ...((!process.env.BREVO_API_KEY) && { devOtp: otp })
     });
   } catch (error) {
     console.error('sendOTP error:', error.message);
